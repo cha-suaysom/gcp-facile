@@ -6,15 +6,10 @@ import server_tools_pb2_grpc
 from google.protobuf import empty_pb2
 
 PORT = '50051'
-f = open("IP.txt")
-IP = f.read()
-if IP[-1] == '\n':
-    IP = IP[:-1]
-f.close()
 
-def run_facile():
+def run_facile(host_IP):
     # Get a handle to the server
-    channel = grpc.insecure_channel(IP + ':' + PORT)
+    channel = grpc.insecure_channel(host_IP + ':' + PORT)
     stub = server_tools_pb2_grpc.MnistServerStub(channel)
 
     # Get a client ID which you need to talk to the server
@@ -70,8 +65,11 @@ def run_facile():
 
 
 if __name__ == '__main__':
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument('--IP', type=str, default="localhost")
+    args = parser.parse_args()
     logging.basicConfig()
     logging.root.setLevel(logging.NOTSET)
     logging.basicConfig(level=logging.NOTSET)
-    #run()
-    run_facile()
+    run_facile(args.IP)
