@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from keras.layers import Dense, BatchNormalization, Input, Dropout, Activation, concatenate, GRU, Dropout
+from keras.layers import Dense, BatchNormalization, Input, Dropout
+from keras.layers import Activation, concatenate, GRU, Dropout
 
 from concurrent import futures
 import logging
@@ -67,9 +68,11 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
             logging.error(
                 "Request is invalid and failed the verification processes")
             return server_tools_pb2.PredictionMessage(
-                complete=False, prediction=b'', error='Invalid data package', infer_time=0)
+                complete=False, prediction=b'',
+                error='Invalid data package', infer_time=0)
         logging.info(
-            "Request is valid and data preparation succeeds, ml prediction begins")
+            """Request is valid and data preparation
+               succeeds, ml prediction begins""")
         sample = mc.Sample()
         sample.X = pd.read_json(request.x_input.decode('utf-8'))
         print("Type of X is", type(sample.X), sample.X.shape)
