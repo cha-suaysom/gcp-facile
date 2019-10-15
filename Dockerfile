@@ -10,6 +10,7 @@ COPY . .
 
 # Install production dependencies.
 # RUN pip install gunicorn
+RUN pip install pandas
 RUN pip install grpcio
 RUN pip install tensorflow==1.13.1
 RUN pip install keras
