@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from keras.models import Model, load_model
-from keras.layers import Dense, BatchNormalization, Input, Dropout, Activation, concatenate, GRU
+from keras.layers import Dense, BatchNormalization, Input
+from keras.layers import Dropout, Activation, concatenate, GRU
 from keras.utils import np_utils
 from keras.optimizers import Adam, Nadam, SGD
 import keras.backend as K

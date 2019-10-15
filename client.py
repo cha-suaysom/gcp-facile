@@ -24,7 +24,8 @@ def run_facile(host_IP):
         response = stub.RequestClientID(server_tools_pb2.NullParam())
     except BaseException:
         print(
-            "Connection to the server could not be established. Press enter to try again.")
+             """Connection to the server could not be established.
+             Press enter to try again.""")
         return
     client_id = response.new_id
     logging.info("Client id is " + str(client_id))
