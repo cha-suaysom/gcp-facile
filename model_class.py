@@ -40,8 +40,7 @@ class Sample(object):
                 '%s/%s_%s.pkl' %
                 (base, 'Y', region))[
                 :Nrhs]
-            self.kin = pd.read_pickle(
-                '%s/%s_%s.pkl' % (base, 'X', region))[:Nrhs][['PU', 'ieta', 'iphi', 'pt']]
+            self.kin = self.X[['PU', 'ieta', 'iphi', 'pt']]
         else:
             self.X = np.load(
                 '%s/%s.pkl' %
@@ -51,8 +50,7 @@ class Sample(object):
                 '%s/%s.pkl' %
                 (base, 'Y'), allow_pickle=True)[
                 :Nrhs]
-            self.kin = np.load('%s/%s.pkl' % (base, 'X'),
-                               allow_pickle=True)[:Nrhs][['PU', 'ieta', 'iphi', 'pt']]
+            self.kin = self.X[['PU', 'ieta', 'iphi', 'pt']]
 
         print(self.X.shape, self.Y.shape)
         self.X.drop(['PU', 'pt'], 1, inplace=True)

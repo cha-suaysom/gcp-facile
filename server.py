@@ -30,7 +30,8 @@ from keras.models import Model
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 PORT = '50051'
 
-global processes, max_id, results, max_client_ids, max_client_id, new_client_permitted, times
+global processes, max_id, results, max_client_ids
+global max_client_id, new_client_permitted, times
 processes = {}
 max_client_ids = {}
 max_client_id = 0
