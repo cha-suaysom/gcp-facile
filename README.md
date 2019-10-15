@@ -4,6 +4,6 @@ This repository sets up the as-a-service server on Google Cloud Platform (gcp) t
 
 If the server is already running, then the users have to perform the following steps
 
-1. Install the necessary packages with `pip install requirements.txt`
+1. Install the necessary packages with `pip install -r requirements.txt`
 2. Run `python client.py --IP="ip-address"` where `ip-address` is the location of the server (we use target port of 50051 by default).
 
