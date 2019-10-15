@@ -17,7 +17,6 @@ from keras.layers import Dense, BatchNormalization, Input, Dropout, Activation, 
 from concurrent import futures
 import logging, grpc, time
 import numpy as np
-import threading
   
 import model_class as mc
 import server_tools_pb2

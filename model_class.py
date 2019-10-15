@@ -5,10 +5,9 @@ from keras.utils import np_utils
 from keras.optimizers import Adam, Nadam, SGD
 import keras.backend as K
 from tensorflow.python.framework import graph_util, graph_io
-import os, sys
+import os
 import numpy as np
 import pandas as pd
-import pickle 
 import time
 import tensorflow as tf
 
