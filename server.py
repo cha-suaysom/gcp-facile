@@ -74,11 +74,12 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
         logging.info(
             """Request is valid and data preparation
                succeeds, ml prediction begins""")
+        
+        """
+        Initializing and standardizing X
+        """
         sample = mc.Sample()
-        sample.X = pd.read_json(request.x_input.decode('utf-8'))
-        print("Type of X is", type(sample.X), sample.X.shape)
-        sample.Y = pd.read_json(request.y_input.decode('utf-8'))
-        print("Type of Y is", type(sample.Y), sample.Y.shape)
+        sample.X = pd.read_json(request.x_input.decode('utf-8')) # OK!
         sample.X.drop(['PU', 'pt'], 1, inplace=True)
         sample.idx = np.random.permutation(sample.X.shape[0])
         print('Standardizing...')
@@ -86,17 +87,26 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
         sample.standardize(mu, std)
         n_inputs = sample.X.shape[1]
 
+        # Define class model
         model = Model4ExpLLLow(n_inputs, True)
-        print("Model name is ", model.name)
-        model.train(sample, num_epochs=32, mahi=True)
+        model.load_model("weights.h5")
 
-        prediction = "Succeed because doesn't do anything??"
-        logging.info("ML prediction succeeds")
+        #sample.infer(model)
+        predictions, infer_time = model.predict(sample.X, 32)
+        print("------------PREDICTION-----------")
+        print(predictions)
+        print(type(predictions))
+        print(predictions.tobytes())
+        print(predictions.shape)
+        print(predictions[:,0].shape)
+        print(type(predictions[0]))
+        print(predictions[:,0])
+        print(predictions.dtype)
         return server_tools_pb2.PredictionMessage(
             complete=True,
-            prediction=prediction.encode('utf-8'),
+            prediction=predictions[:,0].tobytes(),
             error='',
-            infer_time=0.12345)
+            infer_time=infer_time)
 
     def RequestClientID(self, request, context):
         global max_client_id, new_client_permitted, max_client_ids
@@ -127,7 +137,6 @@ def serve():
 
 
 if __name__ == '__main__':
-
     logging.basicConfig()
     logging.root.setLevel(logging.NOTSET)
     logging.basicConfig(level=logging.NOTSET)

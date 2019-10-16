@@ -10,7 +10,7 @@ from google.protobuf import empty_pb2
 PORT = '50051'
 VALSPLIT = 0.2
 np.random.seed(5)
-Nrhs = 10000
+Nrhs = 500
 
 
 def run_facile(host_IP):
@@ -51,7 +51,9 @@ def run_facile(host_IP):
     print("Predict time:", response.infer_time)
     print("Fraction of time spent not predicting:",
           (1 - response.infer_time / whole_time) * 100, '%')
-    print(response.prediction.decode("utf-8"))
+    print("INFERENCE RESULT IS")
+    print(response.prediction)
+    print(np.frombuffer(response.prediction,dtype = np.float32))
     channel.close()
 
 
