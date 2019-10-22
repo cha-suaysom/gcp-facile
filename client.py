@@ -10,12 +10,16 @@ from google.protobuf import empty_pb2
 PORT = '50051'
 VALSPLIT = 0.2
 np.random.seed(5)
-Nrhs = 500
+Nrhs = 100000
 
 
 def run_facile(host_IP):
     # Get a handle to the server
-    channel = grpc.insecure_channel(host_IP + ':' + PORT)
+    options = [('grpc.max_receive_message_length', 100*1024*1024 )]
+    options = [('grpc.max_send_message_length', 100*1024*1024 )]
+    options = [('grpc.max_message_length', 100*1024*1024 )]
+    #print("Max message length is ", grpc.max_message_length)
+    channel = grpc.insecure_channel(host_IP + ':' + PORT, options = options)
     stub = server_tools_pb2_grpc.MnistServerStub(channel)
 
     # Get a client ID which you need to talk to the server
@@ -52,8 +56,8 @@ def run_facile(host_IP):
     print("Fraction of time spent not predicting:",
           (1 - response.infer_time / whole_time) * 100, '%')
     print("INFERENCE RESULT IS")
-    print(response.prediction)
-    print(np.frombuffer(response.prediction,dtype = np.float32))
+    #print(response.prediction)
+    #print(np.frombuffer(response.prediction,dtype = np.float32))
     channel.close()
 
 

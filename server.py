@@ -88,20 +88,20 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
         n_inputs = sample.X.shape[1]
 
         # Define class model
-        model = Model4ExpLLLow(n_inputs, True)
+        model = Model4ExpLLLow(n_inputs, True) # True for GPU and false for CPU
         model.load_model("weights.h5")
 
         #sample.infer(model)
         predictions, infer_time = model.predict(sample.X, 32)
-        print("------------PREDICTION-----------")
-        print(predictions)
-        print(type(predictions))
-        print(predictions.tobytes())
-        print(predictions.shape)
-        print(predictions[:,0].shape)
-        print(type(predictions[0]))
-        print(predictions[:,0])
-        print(predictions.dtype)
+        # print("------------PREDICTION-----------")
+        # print(predictions)
+        # print(type(predictions))
+        # print(predictions.tobytes())
+        # print(predictions.shape)
+        # print(predictions[:,0].shape)
+        # print(type(predictions[0]))
+        # print(predictions[:,0])
+        # print(predictions.dtype)
         return server_tools_pb2.PredictionMessage(
             complete=True,
             prediction=predictions[:,0].tobytes(),
@@ -123,9 +123,11 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
 
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    options = [('grpc.max_receive_message_length', 100*1024*1024 )]
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10),options = options)
     server_tools_pb2_grpc.add_MnistServerServicer_to_server(
         MnistServer(), server)
+   
     server.add_insecure_port('[::]:' + PORT)
     server.start()
     print("READY")
