@@ -16,8 +16,6 @@ Nrhs = 100000
 def run_facile(host_IP):
     # Get a handle to the server
     options = [('grpc.max_receive_message_length', 100*1024*1024 )]
-    options = [('grpc.max_send_message_length', 100*1024*1024 )]
-    options = [('grpc.max_message_length', 100*1024*1024 )]
     #print("Max message length is ", grpc.max_message_length)
     channel = grpc.insecure_channel(host_IP + ':' + PORT, options = options)
     stub = server_tools_pb2_grpc.MnistServerStub(channel)
