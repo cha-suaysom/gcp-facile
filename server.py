@@ -14,7 +14,7 @@
 
 from keras.layers import Dense, BatchNormalization, Input, Dropout
 from keras.layers import Activation, concatenate, GRU, Dropout
-
+import keras.backend as K
 from concurrent import futures
 import logging
 import grpc
@@ -90,9 +90,10 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
         # Define class model
         model = Model4ExpLLLow(n_inputs, True) # True for GPU and false for CPU
         model.load_model("weights.h5")
-
         #sample.infer(model)
         predictions, infer_time = model.predict(sample.X, 32)
+        # Need this otherwise two workers will be conflicted
+        K.clear_session()
         # print("------------PREDICTION-----------")
         # print(predictions)
         # print(type(predictions))
@@ -123,7 +124,7 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
 
 
 def serve():
-    options = [('grpc.max_receive_message_length', 100*1024*1024 )]
+    options = [('grpc.max_receive_message_length', 2047*1024*1024 )]
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10),options = options)
     server_tools_pb2_grpc.add_MnistServerServicer_to_server(
         MnistServer(), server)

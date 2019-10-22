@@ -153,6 +153,7 @@ class ClassModel(object):
         p1 = path.split('/')[-1]
         graph_io.write_graph(graph, p0, p1, as_text=False)
         print('Saved to', path)
+        
 
     def predict(self, *args, **kwargs):
         start_time = time.time()
@@ -162,3 +163,4 @@ class ClassModel(object):
 
     def load_model(self, path):
         self.model = load_model(path)
+        
