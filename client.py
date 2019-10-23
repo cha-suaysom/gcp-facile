@@ -10,7 +10,7 @@ from google.protobuf import empty_pb2
 PORT = '50051'
 VALSPLIT = 0.2
 np.random.seed(5)
-Nrhs = 500000
+Nrhs = 1000
 
 
 def run_facile(host_IP):
@@ -48,11 +48,13 @@ def run_facile(host_IP):
 
     # Print output
     whole_time = time.time() - start_time
+    print("Total time used: ", whole_time)
     print("Predict time:", response.infer_time)
     print("Fraction of time spent not predicting:",
           (1 - response.infer_time / whole_time) * 100, '%')
     #print(response.prediction)
-    #print(np.frombuffer(response.prediction,dtype = np.float32))
+    print(np.frombuffer(response.prediction[:10],dtype = np.float32))
+    print(X[:10])
     channel.close()
 
 
@@ -64,5 +66,5 @@ if __name__ == '__main__':
     logging.basicConfig()
     logging.root.setLevel(logging.NOTSET)
     logging.basicConfig(level=logging.NOTSET)
-    for i in range(20):
+    for i in range(5):
         run_facile(args.IP)

@@ -21,6 +21,7 @@ import grpc
 import time
 import numpy as np
 
+import model_class_tpu as mc_tpu
 import model_class as mc
 import server_tools_pb2
 import server_tools_pb2_grpc
@@ -88,10 +89,13 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
         n_inputs = sample.X.shape[1]
 
         # Define class model
-        model = Model4ExpLLLow(n_inputs, True) # True for GPU and false for CPU
-        model.load_model("weights.h5")
+        # model = Model4ExpLLLow(n_inputs, True) # True for GPU and false for CPU
+        # model.load_model("weights.h5")
+
         #sample.infer(model)
-        predictions, infer_time = model.predict(sample.X, 32)
+        #predictions, infer_time = model.predict(sample.X, 32)
+        predictions, infer_time = mc_tpu.predict(sample.X, 32)
+
         # Need this otherwise two workers will be conflicted
         K.clear_session()
         # print("------------PREDICTION-----------")
@@ -103,6 +107,8 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
         # print(type(predictions[0]))
         # print(predictions[:,0])
         # print(predictions.dtype)
+        #print(predictions.type)
+        print(list(predictions))
         return server_tools_pb2.PredictionMessage(
             complete=True,
             prediction=predictions[:,0].tobytes(),
