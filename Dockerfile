@@ -10,10 +10,10 @@ COPY . .
 
 # Install production dependencies.
 # RUN pip install gunicorn
-RUN pip install pandas
+RUN pip install pandas==0.25.1
 RUN pip install grpcio
 RUN pip install tensorflow==1.13.1
-RUN pip install keras
+RUN pip install keras==2.2.4
 RUN pip install --upgrade google-api-python-client 
 RUN pip install --upgrade oauth2client
 
