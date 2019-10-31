@@ -21,6 +21,7 @@ import logging
 import grpc
 import time
 import numpy as np
+from tensorflow.python.client import device_lib
 
 import model_class as mc
 import server_tools_pb2
@@ -73,7 +74,19 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
         finish_time = time.time()-start_time
         print("Time spent decoding ", finish_time)
 
+        logging.info("List all devices")
+        for tf_device in device_lib.list_local_devices():
+            logging.info(tf_device)
+
+        logging.info("List all available GPU OUTSIDE with Keras")
+        for gpu_machine in K.tensorflow_backend._get_available_gpus():
+            logging.info(gpu_machine)
+
         with tf.device('/gpu:0'):
+            logging.info("---------USING GPU----------")
+            logging.info("List all available GPU INSIDE with Keras")
+            for gpu_machine in K.tensorflow_backend._get_available_gpus():
+                logging.info(gpu_machine)
             start_time =time.time()
             weight_file = load_model("weights.h5", compile=False)
             finish_time = time.time() - start_time 
@@ -83,8 +96,26 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
             start_time = time.time()
             predictions = weight_file.predict(X, 32)
             infer_time = time.time()-start_time
-            print("Infer time is ", infer_time)
+            logging.info("Infer time is "+ str(infer_time))
             whole_time += infer_time
+            logging.info("------------------------")
+
+        with tf.device('/cpu:0'):
+            logging.info("---------USING CPU----------")
+            logging.info("List all available GPU INSIDE with Keras")
+            for gpu_machine in K.tensorflow_backend._get_available_gpus():
+                logging.info(gpu_machine)
+            start_time =time.time()
+            weight_file = load_model("weights.h5", compile=False)
+            finish_time = time.time() - start_time 
+            print("Loading model time ", finish_time)
+            whole_time += finish_time
+            start_time = time.time()
+            predictions = weight_file.predict(X, 32)
+            infer_time = time.time()-start_time
+            logging.info("Infer time is "+ str(infer_time))
+            whole_time += infer_time
+            logging.info("------------------------")
         # Need this otherwise two workers will be conflicted
         K.clear_session()
         print("Whole time is ", whole_time)
