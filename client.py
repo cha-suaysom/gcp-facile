@@ -36,6 +36,7 @@ def run_facile(channel, data_send, num_data_send):
 
     # Print output
     whole_time = time.time() - start_time
+    print("Whole time:", whole_time)
     print("Predict time:", response.infer_time)
     print("Fraction of time spent not predicting:",
           (1 - response.infer_time / whole_time) * 100, '%')
@@ -66,9 +67,12 @@ if __name__ == '__main__':
 
     start_time = time.time()
     read_rec_hit = pd.read_pickle("input/X_HB.pkl")[:args.num_send]
+    read_rec_hit.drop(['PU', 'pt'], 1, inplace=True)
+    mu,std = np.mean(read_rec_hit, axis=0), np.std(read_rec_hit, axis=0)
+    read_rec_hit = (read_rec_hit-mu)/std
     print(len(read_rec_hit))
     finish_time = time.time()-start_time
-    print("Time reading data from local file (pkl->pandas) is ", finish_time)
+    print("Time reading data from local file and preprocessing (pkl->pandas) is ", finish_time)
 
     start_time = time.time()
     compressed_data = read_rec_hit.to_json().encode('utf-8')

@@ -34,7 +34,7 @@ PORT = '50051'
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 global processes, max_id, results, max_client_ids
-global max_client_id, new_client_permitted, times
+global max_client_id, new_client_permitted, times, weight_file
 processes = {}
 max_client_ids = {}
 max_client_id = 0
@@ -42,7 +42,7 @@ max_id = 0
 new_client_permitted = True
 results = {}
 times = {}
-
+#weight_file = load_model("weights.h5", compile=False)
 
 def verify_request(request):
     logging.info("Client id is " + str(request.client_id))
@@ -52,6 +52,7 @@ def verify_request(request):
 
 class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
     def StartJobWait(self, request, context):
+        whole_time = 0
         logging.info("StartJobWait begins")
         if not verify_request(request):
             logging.error(
@@ -63,24 +64,30 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
             """Request is valid and data preparation
                succeeds, ml prediction begins""")
         
+
         """
         Initializing and standardizing X
         """
-        #sample = mc.Sample()
+        start_time =time.time()
         X = pd.read_json(request.data.decode('utf-8')) # OK!
-        X.drop(['PU', 'pt'], 1, inplace=True)
-
-        # print('Standardizing...')
-        # mu, std = np.mean(sample.X, axis=0), np.std(sample.X, axis=0)
-        # sample.standardize(mu, std)
+        finish_time = time.time()-start_time
+        print("Time spent decoding ", finish_time)
 
         with tf.device('/gpu:0'):
-            weight_file = load_model("weights.h5")
+            start_time =time.time()
+            weight_file = load_model("weights.h5", compile=False)
+            finish_time = time.time() - start_time 
+            print("Loading model time ", finish_time)
+            whole_time += finish_time
+
             start_time = time.time()
             predictions = weight_file.predict(X, 32)
             infer_time = time.time()-start_time
+            print("Infer time is ", infer_time)
+            whole_time += infer_time
         # Need this otherwise two workers will be conflicted
         K.clear_session()
+        print("Whole time is ", whole_time)
         return server_tools_pb2.PredictionMessage(
             complete=True,
             prediction=predictions[:,0].tobytes(),
@@ -106,7 +113,7 @@ def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10),options = options)
     server_tools_pb2_grpc.add_FacileServerServicer_to_server(
         FacileServer(), server)
-   
+    
     server.add_insecure_port('[::]:' + PORT)
     server.start()
     print("READY")
@@ -121,4 +128,5 @@ if __name__ == '__main__':
     logging.basicConfig()
     logging.root.setLevel(logging.NOTSET)
     logging.basicConfig(level=logging.NOTSET)
+    
     serve()
