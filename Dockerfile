@@ -2,17 +2,18 @@
 # Use the official Python image.
 # https://hub.docker.com/_/python
 FROM python:3.7
-
 # Copy local code to the container image.
+ENV LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64
 ENV APP_HOME /app
 WORKDIR $APP_HOME
 COPY . .
+
 
 # Install production dependencies.
 # RUN pip install gunicorn
 RUN pip install pandas==0.25.1
 RUN pip install grpcio
-RUN pip install tensorflow==1.13.1
+RUN pip install tensorflow-gpu==1.13.1
 RUN pip install keras==2.2.4
 RUN pip install --upgrade google-api-python-client 
 RUN pip install --upgrade oauth2client

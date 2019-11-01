@@ -79,7 +79,7 @@ if __name__ == '__main__':
     compressed_data = read_rec_hit.to_json().encode('utf-8')
     finish_time = time.time()-start_time
     print("Time reading data from local file (pandas->bytes) is ", finish_time)
-    num_run = 20
+    num_run = 1
     time_average = 0
     for i in range(num_run):
         time_average += run_facile(setup_server(args.IP), compressed_data, args.num_send)

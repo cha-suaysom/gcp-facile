@@ -94,7 +94,7 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
             whole_time += finish_time
 
             start_time = time.time()
-            predictions = weight_file.predict(X, 32)
+            predictions = weight_file.predict(X, 512)
             infer_time = time.time()-start_time
             logging.info("Infer time is "+ str(infer_time))
             whole_time += infer_time
@@ -111,7 +111,7 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
             print("Loading model time ", finish_time)
             whole_time += finish_time
             start_time = time.time()
-            predictions = weight_file.predict(X, 32)
+            predictions = weight_file.predict(X, 512)
             infer_time = time.time()-start_time
             logging.info("Infer time is "+ str(infer_time))
             whole_time += infer_time
