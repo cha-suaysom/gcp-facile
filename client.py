@@ -9,7 +9,7 @@ from google.protobuf import empty_pb2
 
 PORT = '50051'
 
-def run_facile(channel, data_send, num_data_send):
+def run_facile(channel, data_send, num_data_send, batch_size):
     start_time = time.time()
     # Get a client ID which you need to talk to the server
     stub = server_tools_pb2_grpc.FacileServerStub(channel)
@@ -31,7 +31,7 @@ def run_facile(channel, data_send, num_data_send):
     #logging.info("Number tested is " + str(num_data_send))
     #logging.info("Submitting files and waiting")
     data_message = server_tools_pb2.DataMessage(
-        client_id=client_id, data=data_send, batch_size=8)
+        client_id=client_id, data=data_send, batch_size=batch_size)
     response = stub.StartJobWait(data_message, 100, [])
 
     # Print output
@@ -41,7 +41,7 @@ def run_facile(channel, data_send, num_data_send):
     #print("Fraction of time spent not predicting:",
     #      (1 - response.infer_time / whole_time) * 100, '%')
     A = np.frombuffer(response.prediction,dtype = np.float32)
-    #print(list(np.frombuffer(response.prediction,dtype = np.float32))[:10])
+    print(list(np.frombuffer(response.prediction,dtype = np.float32))[:10])
     channel.close()
     return response.infer_time
 
@@ -67,10 +67,13 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.NOTSET)
 
     start_time = time.time()
-    read_rec_hit = pd.read_pickle("input/X_HB.pkl")[:args.num_send]
+    read_rec_hit = pd.read_pickle("input/X_HB.pkl") #[:args.num_send]
     read_rec_hit.drop(['PU', 'pt'], 1, inplace=True)
     mu,std = np.mean(read_rec_hit, axis=0), np.std(read_rec_hit, axis=0)
+    print("mu is ", mu)
+    print("std is ", std)
     read_rec_hit = (read_rec_hit-mu)/std
+    read_rec_hit = read_rec_hit[:args.num_send]
     print(len(read_rec_hit))
     finish_time = time.time()-start_time
     print("Time reading data from local file and preprocessing (pkl->pandas) is ", finish_time)
@@ -79,8 +82,12 @@ if __name__ == '__main__':
     compressed_data = read_rec_hit.to_json().encode('utf-8')
     finish_time = time.time()-start_time
     print("Time reading data from local file (pandas->bytes) is ", finish_time)
-    num_run = 20
-    time_average = 0
-    for i in range(num_run):
-        time_average += run_facile(setup_server(args.IP), compressed_data, args.num_send)
-    print(time_average/num_run)
+    #num_run = 5
+    #time_average = 0
+    #for i in range(num_run):
+    #    time_average += run_facile(setup_server(args.IP), compressed_data, args.num_send)
+    #print(time_average/num_run)
+    #for i in 2**np.arange(3,16):
+    for i in [32]:
+       run_facile(setup_server(args.IP), compressed_data, args.num_send, i)
+    #print(time_average/10)

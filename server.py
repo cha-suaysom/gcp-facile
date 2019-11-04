@@ -64,7 +64,6 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
         logging.info(
             """Request is valid and data preparation
                succeeds, ml prediction begins""")
-        
 
         """
         Initializing and standardizing X
@@ -73,45 +72,45 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
         X = pd.read_json(request.data.decode('utf-8')) # OK!
         finish_time = time.time()-start_time
         print("Time spent decoding ", finish_time)
+        batch_size = request.batch_size
+        #logging.info("List all devices")
+        #for tf_device in device_lib.list_local_devices():
+        #    logging.info(tf_device)
 
-        logging.info("List all devices")
-        for tf_device in device_lib.list_local_devices():
-            logging.info(tf_device)
-
-        logging.info("List all available GPU OUTSIDE with Keras")
-        for gpu_machine in K.tensorflow_backend._get_available_gpus():
-            logging.info(gpu_machine)
+        #logging.info("List all available GPU OUTSIDE with Keras")
+        #for gpu_machine in K.tensorflow_backend._get_available_gpus():
+        #    logging.info(gpu_machine)
 
         with tf.device('/gpu:0'):
-            logging.info("---------USING GPU----------")
-            logging.info("List all available GPU INSIDE with Keras")
-            for gpu_machine in K.tensorflow_backend._get_available_gpus():
-                logging.info(gpu_machine)
+            #logging.info("---------USING GPU----------")
+            #logging.info("List all available GPU INSIDE with Keras")
+            #for gpu_machine in K.tensorflow_backend._get_available_gpus():
+            #    logging.info(gpu_machine)
             start_time =time.time()
             weight_file = load_model("weights.h5", compile=False)
-            finish_time = time.time() - start_time 
+            finish_time = time.time() - start_time
             print("Loading model time ", finish_time)
             whole_time += finish_time
 
             start_time = time.time()
-            predictions = weight_file.predict(X, 32)
+            predictions = weight_file.predict(X, batch_size)
             infer_time = time.time()-start_time
             logging.info("Infer time is "+ str(infer_time))
             whole_time += infer_time
             logging.info("------------------------")
 
         with tf.device('/cpu:0'):
-            logging.info("---------USING CPU----------")
-            logging.info("List all available GPU INSIDE with Keras")
-            for gpu_machine in K.tensorflow_backend._get_available_gpus():
-                logging.info(gpu_machine)
+            #logging.info("---------USING CPU----------")
+            #logging.info("List all available GPU INSIDE with Keras")
+            #for gpu_machine in K.tensorflow_backend._get_available_gpus():
+            #    logging.info(gpu_machine)
             start_time =time.time()
             weight_file = load_model("weights.h5", compile=False)
-            finish_time = time.time() - start_time 
+            finish_time = time.time() - start_time
             print("Loading model time ", finish_time)
             whole_time += finish_time
             start_time = time.time()
-            predictions = weight_file.predict(X, 32)
+            predictions = weight_file.predict(X, batch_size)
             infer_time = time.time()-start_time
             logging.info("Infer time is "+ str(infer_time))
             whole_time += infer_time
@@ -144,7 +143,6 @@ def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10),options = options)
     server_tools_pb2_grpc.add_FacileServerServicer_to_server(
         FacileServer(), server)
-    
     server.add_insecure_port('[::]:' + PORT)
     server.start()
     print("READY")
@@ -159,5 +157,4 @@ if __name__ == '__main__':
     logging.basicConfig()
     logging.root.setLevel(logging.NOTSET)
     logging.basicConfig(level=logging.NOTSET)
-    
     serve()
