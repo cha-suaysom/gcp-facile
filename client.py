@@ -87,7 +87,12 @@ if __name__ == '__main__':
     #for i in range(num_run):
     #    time_average += run_facile(setup_server(args.IP), compressed_data, args.num_send)
     #print(time_average/num_run)
-    #for i in 2**np.arange(3,16):
-    for i in [32]:
+    for i in 2**np.arange(8,17):
        run_facile(setup_server(args.IP), compressed_data, args.num_send, i)
     #print(time_average/10)
+    #num_run = 1
+    #time_average = 0
+    #for i in range(num_run):
+    #    time_average += run_facile(setup_server(args.IP), compressed_data, args.num_send)
+    #print(time_average/num_run)
+
