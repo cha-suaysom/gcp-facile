@@ -41,7 +41,8 @@ message PredictionMessage {
   bool complete = 1;
   bytes prediction = 2;
   string error = 3;
-  float infer_time = 4;
+  float infer_time_CPU = 4;
+  float infer_time_GPU = 5;
 }
 
 message IDMessage {

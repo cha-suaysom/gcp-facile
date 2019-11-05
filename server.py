@@ -94,9 +94,9 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
 
             start_time = time.time()
             predictions = weight_file.predict(X, batch_size)
-            infer_time = time.time()-start_time
-            logging.info("Infer time is "+ str(infer_time))
-            whole_time += infer_time
+            infer_time_GPU = time.time()-start_time
+            logging.info("Infer time is "+ str(infer_time_GPU))
+            whole_time += infer_time_GPU
             logging.info("------------------------")
 
         with tf.device('/cpu:0'):
@@ -111,9 +111,9 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
             whole_time += finish_time
             start_time = time.time()
             predictions = weight_file.predict(X, batch_size)
-            infer_time = time.time()-start_time
-            logging.info("Infer time is "+ str(infer_time))
-            whole_time += infer_time
+            infer_time_CPU = time.time()-start_time
+            logging.info("Infer time is "+ str(infer_time_CPU))
+            whole_time += infer_time_CPU
             logging.info("------------------------")
         # Need this otherwise two workers will be conflicted
         K.clear_session()
@@ -122,7 +122,8 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
             complete=True,
             prediction=predictions[:,0].tobytes(),
             error='',
-            infer_time=infer_time)
+            infer_time_CPU = infer_time_CPU,
+            infer_time_GPU = infer_time_GPU)
 
     def RequestClientID(self, request, context):
         global max_client_id, new_client_permitted, max_client_ids
