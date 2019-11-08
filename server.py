@@ -75,7 +75,6 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
         logging.info(
             """Request is valid and data preparation
                succeeds, ml prediction begins""")
-        
         """
         Initializing and standardizing X
         """
@@ -94,7 +93,7 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
 
         #sample.infer(model)
         #predictions, infer_time = model.predict(sample.X, 32)
-        predictions, infer_time = mc_tpu.predict(sample.X, 32)
+        prediction, infer_time = mc_tpu.predict(sample.X, 32)
 
         # Need this otherwise two workers will be conflicted
         K.clear_session()
@@ -108,10 +107,12 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
         # print(predictions[:,0])
         # print(predictions.dtype)
         #print(predictions.type)
-        print(list(predictions))
+        #print(list(predictions))
+        print("Type of prediction is ", type(prediction))
+        print("What can I call ", dir(prediction))
         return server_tools_pb2.PredictionMessage(
             complete=True,
-            prediction=predictions[:,0].tobytes(),
+            prediction=("lol".encode('utf-8')),
             error='',
             infer_time=infer_time)
 

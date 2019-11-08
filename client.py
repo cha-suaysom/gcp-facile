@@ -53,8 +53,9 @@ def run_facile(host_IP):
     print("Fraction of time spent not predicting:",
           (1 - response.infer_time / whole_time) * 100, '%')
     #print(response.prediction)
-    print(np.frombuffer(response.prediction[:10],dtype = np.float32))
-    print(X[:10])
+    #print(np.frombuffer(response.prediction[:10],dtype = np.float32))
+    print(response.prediction.decode('utf-8'))
+    #print(X[:10])
     channel.close()
 
 
@@ -66,5 +67,5 @@ if __name__ == '__main__':
     logging.basicConfig()
     logging.root.setLevel(logging.NOTSET)
     logging.basicConfig(level=logging.NOTSET)
-    for i in range(5):
+    for i in range(1):
         run_facile(args.IP)

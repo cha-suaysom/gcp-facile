@@ -1,7 +1,8 @@
+
 import os, sys, time, threading
 import tensorflow as tf
 import numpy as np
-
+import pandas as pd
 # Disable depreciation warnings and limit verbosity during training
 from tensorflow.python.util import deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -11,15 +12,15 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
 # IMG_EDGE = 28
-MODEL_DIR = 'gs://harrisgroup-ctpu/jtdinsmo/mnist-server/output/'
-DATA_DIR = 'gs://harrisgroup-ctpu/jtdinsmo/mnist-server/data/'
+MODEL_DIR = 'gs://harrisgroup-ctpu/facile/model/'
+DATA_DIR = 'gs://harrisgroup-ctpu/facile/data/'
 #MODEL_DIR = "/home/nsuaysom/gcp-facile"
 #DATA_DIR = "/home/nsuaysom/gcp-facile/input/"
 TPU_NAME='jtdinsmo-tpu-2'
 ZONE_NAME='us-central1-b'
 PROJECT_NAME = 'harrisgroup-223921'
 NUM_ITERATIONS = 50 # Number of iterations per TPU training loop
-TRAIN_STEPS = 100000
+TRAIN_STEPS = 10
 EVALUATE_STEPS = 1000
 INFERENCE_TIME_THRESHOLD = 10 # Seconds
 NUM_SHARDS = 8 # Number of shards (TPU chips).
@@ -31,13 +32,15 @@ lock = threading.Lock()
 
 class ModelCNN(object):
     def __call__(self, inputs):
-        net = tf.layers.conv2d(inputs, 32, [5, 5], activation=tf.nn.relu, name='conv1')
-        net = tf.layers.max_pooling2d(net, [2, 2], 2, name='pool1')
-        net = tf.layers.conv2d(net, 64, [5, 5], activation=tf.nn.relu, name='conv2')
-        net = tf.layers.max_pooling2d(net, [2, 2], 2, name='pool2')
-        net = tf.layers.flatten(net, name='flat')
+        #norm = tf.layers.dropout(rate =0.001)(input)
+        #net = tf.layers.dense(11,activtion = 'relu')(norm)
+        #net = tf.layers.conv2d(inputs, 32, [5, 5], activation=tf.nn.relu, name='conv1')
+        #net = tf.layers.max_pooling2d(net, [2, 2], 2, name='pool1')
+        #net = tf.layers.conv2d(net, 64, [5, 5], activation=tf.nn.relu, name='conv2')
+        #net = tf.layers.max_pooling2d(net, [2, 2], 2, name='pool2')
+        #net = tf.layers.flatten(net, name='flat')
         #net = tf.layers.dense(net, NUM_CLASSES, activation=None, name='fc1')
-        return net
+        return tf.layers.dense(inputs, 36, activation = 'linear', name='output')
 
 # class Model4ExpLLLow(mc.ClassModel):
 #     def get_outputs(self):
@@ -55,6 +58,18 @@ class ModelCNN(object):
 
 # DEFINE THE INPUT FUNCTIONS
 
+def input_facile(train_x,train_y,batch_size):
+     #X = pd.read_pickle("input/X_HB.pkl")[:1000]
+     #X.drop(['PU','pt'],1,inplace=True)
+     #Y = pd.read_pickle("input/Y_HB.pkl")[:1000]
+     train_y = train_y*0+1
+     train_y.iloc[0] = 2
+     train_y.iloc[1] = 2
+     print(train_y)
+     dataset = tf.data.Dataset.from_tensor_slices((tf.cast(train_x,tf.float32),tf.cast(train_y,tf.int32)))
+     #dataset = tf.cast(dataset, tf.float32)
+     return dataset.apply(tf.contrib.data.batch_and_drop_remainder(batch_size))
+
 def model_fn(features, labels, mode, params):
     # del params# Unused
     # image = features
@@ -62,14 +77,32 @@ def model_fn(features, labels, mode, params):
     #     image = features["image"]
 
     #image = tf.reshape(image, [-1, IMG_EDGE, IMG_EDGE, 1])
+    #net = tf.feature_column.input_layer(features, [5,5,5])
+    #for units in [5,5,5]:
+    #  net = tf.layers.dense(net, units=units, activation=tf.nn.relu)
     model = ModelCNN()
+    #print("Type of features is", type(features), features.shape)
+    #print("Type of Labels is ", type(labels), labels.shape)
+    #print(features.shape)
+    #features = tf.reshape(features,[-1,12,1])
+
     if mode == tf.estimator.ModeKeys.PREDICT:
-        logits = model(image)
+        logits = model(features)
         predictions = {
             'class_ids': tf.argmax(logits, axis=1),
             'probabilities': tf.nn.softmax(logits),
         }
         return tf.contrib.tpu.TPUEstimatorSpec(mode, predictions=predictions)
+
+    logits = model(features)
+    loss = tf.losses.sparse_softmax_cross_entropy(labels=labels,logits=logits)
+
+    if mode == tf.estimator.ModeKeys.TRAIN:
+      optimizer = tf.train.AdagradOptimizer(learning_rate=0.1)
+      if USE_TPU:
+        optimizer = tf.contrib.tpu.CrossShardOptimizer(optimizer)
+      train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
+      return tf.contrib.tpu.TPUEstimatorSpec(mode, loss=loss, train_op=train_op)
 
 
 # CREATE AND PREDICT WITH TPUS
@@ -97,12 +130,12 @@ def create_estimator(batch_size):
         config=run_config)
     return estimator
 
-def predict(data, batch_size, results=None, times=None, job_id=None):
+def predict(data, batch_size,estimator, results=None, times=None, job_id=None):
     assert (results is None and times is None and job_id is None) or not (results is None or times is None or job_id is None)
     lock.acquire()
     start_time = time.time()
 
-    estimator = create_estimator(batch_size)
+    #estimator = create_estimator(batch_size)
 
     print("Predicting")
     def predict_input_fn(params):
@@ -111,15 +144,32 @@ def predict(data, batch_size, results=None, times=None, job_id=None):
         return dataset_predict.batch(batch_size)
 
     predictions = estimator.predict(predict_input_fn)
-
+    i = 0
+    for pred_dict in predictions:
+        print(pred_dict.keys())
+        print(pred_dict.values())
+        i+=1
+        if(i>=10):
+          break
     # print("Getting labels")
     # labels = []
     # for pred_dict in predictions:
     #     labels.append(pred_dict['probabilities'])
     # labels = np.array(labels).astype('float64')
-    tf.reset_default_graph()
 
     predict_time = time.time() - start_time
     lock.release()
 
     return predictions, predict_time
+
+if __name__=="__main__":
+     #predict(data,32)
+     train_x = pd.read_pickle("input/X_HB.pkl")[:1000]
+     train_x.drop(['PU','pt'],1,inplace=True)
+     train_y = pd.read_pickle("input/Y_HB.pkl")[:1000][['genE']]
+     estimator = create_estimator(32)
+     estimator.train(
+      input_fn=lambda params: input_facile(train_x,train_y,
+          params["batch_size"]),
+      max_steps=TRAIN_STEPS)
+     predict(train_x,32,estimator)
