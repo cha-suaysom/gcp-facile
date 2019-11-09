@@ -43,7 +43,7 @@ def run_facile(channel, data_send, num_data_send, batch_size):
     A = np.frombuffer(response.prediction,dtype = np.float32)
     print(list(np.frombuffer(response.prediction,dtype = np.float32))[:10])
     channel.close()
-    return response.infer_time
+    return response.infer_time_CPU, response.infer_time_GPU
 
 
 def setup_server(host_IP):
@@ -88,8 +88,9 @@ if __name__ == '__main__':
     #    time_average += run_facile(setup_server(args.IP), compressed_data, args.num_send)
     #print(time_average/num_run)
     for i in 2**np.arange(8,17):
-       run_facile(setup_server(args.IP), compressed_data, args.num_send, i)
-    #print(time_average/10)
+       cpu_time, gpu_time = run_facile(setup_server(args.IP), compressed_data, args.num_send, i)
+       print(cpu_time,gpu_time)    
+#print(time_average/10)
     #num_run = 1
     #time_average = 0
     #for i in range(num_run):
