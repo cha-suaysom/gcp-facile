@@ -52,6 +52,22 @@ def verify_request(request):
 
 
 class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
+    weight_file = None;
+    
+    def __init__(self):
+        start_time =time.time()
+        self.weight_file = load_model("weights.h5", compile=False)
+        self.weight_file._make_predict_function()
+        input_tensor_shape = self.weight_file.input_shape
+        init_tensor_shape = [1]
+        for i in range(len(input_tensor_shape)-1):
+            init_tensor_shape.append(input_tensor_shape[i+1])
+        print(init_tensor_shape)
+        init_tensor = np.zeros(init_tensor_shape)
+        self.weight_file.predict(init_tensor, 1)
+        finish_time = time.time() - start_time
+        print("Loading model time ", finish_time)
+    
     def StartJobWait(self, request, context):
         whole_time = 0
         logging.info("StartJobWait begins")
@@ -86,14 +102,14 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
             #logging.info("List all available GPU INSIDE with Keras")
             #for gpu_machine in K.tensorflow_backend._get_available_gpus():
             #    logging.info(gpu_machine)
-            start_time =time.time()
-            weight_file = load_model("weights.h5", compile=False)
-            finish_time = time.time() - start_time
-            print("Loading model time ", finish_time)
-            whole_time += finish_time
+            #start_time =time.time()
+            #weight_file = load_model("weights.h5", compile=False)
+            #finish_time = time.time() - start_time
+            #print("Loading model time ", finish_time)
+            #whole_time += finish_time
 
             start_time = time.time()
-            predictions = weight_file.predict(X, batch_size)
+            predictions = self.weight_file.predict(X, batch_size)
             infer_time_GPU = time.time()-start_time
             logging.info("Infer time is "+ str(infer_time_GPU))
             whole_time += infer_time_GPU
@@ -104,19 +120,19 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
             #logging.info("List all available GPU INSIDE with Keras")
             #for gpu_machine in K.tensorflow_backend._get_available_gpus():
             #    logging.info(gpu_machine)
-            start_time =time.time()
-            weight_file = load_model("weights.h5", compile=False)
-            finish_time = time.time() - start_time
-            print("Loading model time ", finish_time)
-            whole_time += finish_time
+            #start_time =time.time()
+            #weight_file = load_model("weights.h5", compile=False)
+            #finish_time = time.time() - start_time
+            #print("Loading model time ", finish_time)
+            #whole_time += finish_time
             start_time = time.time()
-            predictions = weight_file.predict(X, batch_size)
+            predictions = self.weight_file.predict(X, batch_size)
             infer_time_CPU = time.time()-start_time
             logging.info("Infer time is "+ str(infer_time_CPU))
             whole_time += infer_time_CPU
             logging.info("------------------------")
         # Need this otherwise two workers will be conflicted
-        K.clear_session()
+        #K.clear_session()
         print("Whole time is ", whole_time)
         return server_tools_pb2.PredictionMessage(
             complete=True,
