@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 from keras.layers import Dense, BatchNormalization, Input, Dropout
 from keras.layers import Activation, concatenate, GRU, Dropout
 from keras.models import load_model
@@ -29,6 +30,7 @@ import server_tools_pb2_grpc
 import pandas as pd
 from keras.models import Model
 import tensorflow as tf
+
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 PORT = '50051'
@@ -89,9 +91,9 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
         finish_time = time.time()-start_time
         print("Time spent decoding ", finish_time)
         batch_size = request.batch_size
-        #logging.info("List all devices")
-        #for tf_device in device_lib.list_local_devices():
-        #    logging.info(tf_device)
+        logging.info("List all devices")
+        for tf_device in device_lib.list_local_devices():
+           logging.info(tf_device)
 
         #logging.info("List all available GPU OUTSIDE with Keras")
         #for gpu_machine in K.tensorflow_backend._get_available_gpus():
