@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 from keras.layers import Dense, BatchNormalization, Input, Dropout
 from keras.layers import Activation, concatenate, GRU, Dropout
 from keras.models import load_model
@@ -43,7 +44,6 @@ max_id = 0
 new_client_permitted = True
 results = {}
 times = {}
-#weight_file = load_model("weights.h5", compile=False)
 
 def verify_request(request):
     logging.info("Client id is " + str(request.client_id))
@@ -52,6 +52,22 @@ def verify_request(request):
 
 
 class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
+    
+#     weight_file = None;
+#     def __init__(self):
+#         start_time =time.time()
+#         self.weight_file = load_model("weights.h5", compile=False)
+#         self.weight_file._make_predict_function()
+#         input_tensor_shape = self.weight_file.input_shape
+#         init_tensor_shape = [1]
+#         for i in range(len(input_tensor_shape)-1):
+#             init_tensor_shape.append(input_tensor_shape[i+1])
+#         print(init_tensor_shape)
+#         init_tensor = np.zeros(init_tensor_shape)
+#         self.weight_file.predict(init_tensor, 1)
+#         finish_time = time.time() - start_time
+#         print("Loading model time ", finish_time)
+
     def StartJobWait(self, request, context):
         whole_time = 0
         logging.info("StartJobWait begins")
@@ -65,55 +81,41 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
             """Request is valid and data preparation
                succeeds, ml prediction begins""")
 
-        """
-        Initializing and standardizing X
-        """
+        
+        #Initializing and standardizing X
+        
         start_time =time.time()
         X = pd.read_json(request.data.decode('utf-8')) # OK!
         finish_time = time.time()-start_time
         print("Time spent decoding ", finish_time)
         batch_size = request.batch_size
-        #logging.info("List all devices")
-        #for tf_device in device_lib.list_local_devices():
-        #    logging.info(tf_device)
 
-        #logging.info("List all available GPU OUTSIDE with Keras")
-        #for gpu_machine in K.tensorflow_backend._get_available_gpus():
-        #    logging.info(gpu_machine)
+        logging.info("List all devices")
+        for tf_device in device_lib.list_local_devices():
+           logging.info(tf_device)
 
-        with tf.device('/gpu:0'):
-            #logging.info("---------USING GPU----------")
-            #logging.info("List all available GPU INSIDE with Keras")
-            #for gpu_machine in K.tensorflow_backend._get_available_gpus():
-            #    logging.info(gpu_machine)
-            start_time =time.time()
-            weight_file = load_model("weights.h5", compile=False)
-            finish_time = time.time() - start_time
-            print("Loading model time ", finish_time)
-            whole_time += finish_time
-
-            start_time = time.time()
-            predictions = weight_file.predict(X, batch_size)
-            infer_time_GPU = time.time()-start_time
-            logging.info("Infer time is "+ str(infer_time_GPU))
-            whole_time += infer_time_GPU
-            logging.info("------------------------")
+        logging.info("List all available GPU OUTSIDE with Keras")
+        for gpu_machine in K.tensorflow_backend._get_available_gpus():
+            logging.info(gpu_machine)
+            
+        weight_file = load_model("weights.h5", compile=False)
 
         with tf.device('/cpu:0'):
-            #logging.info("---------USING CPU----------")
-            #logging.info("List all available GPU INSIDE with Keras")
-            #for gpu_machine in K.tensorflow_backend._get_available_gpus():
-            #    logging.info(gpu_machine)
-            start_time =time.time()
-            weight_file = load_model("weights.h5", compile=False)
-            finish_time = time.time() - start_time
-            print("Loading model time ", finish_time)
-            whole_time += finish_time
             start_time = time.time()
+            #predictions = self.weight_file.predict(X, batch_size)
             predictions = weight_file.predict(X, batch_size)
             infer_time_CPU = time.time()-start_time
             logging.info("Infer time is "+ str(infer_time_CPU))
             whole_time += infer_time_CPU
+            logging.info("------------------------")
+
+        with tf.device('/gpu:0'):
+            start_time = time.time()
+            #predictions = self.weight_file.predict(X, batch_size)
+            predictions = weight_file.predict(X, batch_size)
+            infer_time_GPU = time.time()-start_time
+            logging.info("Infer time is "+ str(infer_time_GPU))
+            whole_time += infer_time_GPU
             logging.info("------------------------")
         # Need this otherwise two workers will be conflicted
         K.clear_session()
