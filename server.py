@@ -69,7 +69,8 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
 #         print("Loading model time ", finish_time)
 
     def StartJobWait(self, request, context):
-        whole_time = 0
+        server_time = 0
+        server_time_start = time.time()
         logging.info("StartJobWait begins")
         if not verify_request(request):
             logging.error(
@@ -85,7 +86,8 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
         #Initializing and standardizing X
         
         start_time =time.time()
-        X = pd.read_json(request.data.decode('utf-8')) # OK!
+        X = np.frombuffer(request.data)
+        X = X.reshape((request.num_data, int(len(X)/request.num_data)))
         finish_time = time.time()-start_time
         print("Time spent decoding ", finish_time)
         batch_size = request.batch_size
@@ -106,7 +108,6 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
             predictions = weight_file.predict(X, batch_size)
             infer_time_CPU = time.time()-start_time
             logging.info("Infer time is "+ str(infer_time_CPU))
-            whole_time += infer_time_CPU
             logging.info("------------------------")
 
         with tf.device('/gpu:0'):
@@ -115,23 +116,22 @@ class FacileServer(server_tools_pb2_grpc.FacileServerServicer):
             predictions = weight_file.predict(X, batch_size)
             infer_time_GPU = time.time()-start_time
             logging.info("Infer time is "+ str(infer_time_GPU))
-            whole_time += infer_time_GPU
             logging.info("------------------------")
         # Need this otherwise two workers will be conflicted
         K.clear_session()
-        print("Whole time is ", whole_time)
         return server_tools_pb2.PredictionMessage(
             complete=True,
             prediction=predictions[:,0].tobytes(),
             error='',
             infer_time_CPU = infer_time_CPU,
-            infer_time_GPU = infer_time_GPU)
+            infer_time_GPU = infer_time_GPU,
+            server_time = time.time()-server_time_start)
 
     def RequestClientID(self, request, context):
         global max_client_id, new_client_permitted, max_client_ids
         while not new_client_permitted:
             pass
-
+        
         new_client_permitted = False
         client_id = str(max_client_id)
         max_client_id += 1

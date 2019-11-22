@@ -22,24 +22,29 @@ def run_facile(channel, data_send, num_data_send, batch_size):
              Press enter to try again.""")
         return
     client_id = response.new_id
-    #logging.info("Client id is " + str(client_id))
     finish_time = time.time()-start_time
 
-    #print("Time establishing server connections ", finish_time)
-    # Send the data to the server and receive an answer
     start_time = time.time()
-    #logging.info("Number tested is " + str(num_data_send))
-    #logging.info("Submitting files and waiting")
+    logging.info("Number tested is " + str(num_data_send) + "batch size is " + str(batch_size))
+    logging.info("Submitting files and waiting")
     data_message = server_tools_pb2.DataMessage(
-        client_id=client_id, data=data_send, batch_size=batch_size)
+        client_id=client_id, data=data_send, batch_size=batch_size, num_data = num_data_send)
     response = stub.StartJobWait(data_message, 100, [])
 
     # Print output
+#     
+#     print("Whole time:", whole_time)
+#     print("Predict time:", response.infer_time)
+#     print("Fraction of time spent not predicting:",
+#          (1 - response.infer_time / whole_time) * 100, '%')
     whole_time = time.time() - start_time
-    #print("Whole time:", whole_time)
-    #print("Predict time:", response.infer_time)
-    #print("Fraction of time spent not predicting:",
-    #      (1 - response.infer_time / whole_time) * 100, '%')
+    server_time = response.server_time
+    print("Whole server time:", server_time)
+    print("Latency time", whole_time-server_time)
+    print("Latency percentage",
+         (1 -server_time / whole_time) * 100, '%')
+    
+          
     A = np.frombuffer(response.prediction,dtype = np.float32)
     print(list(np.frombuffer(response.prediction,dtype = np.float32))[:10])
     channel.close()
@@ -74,31 +79,20 @@ if __name__ == '__main__':
     print("std is ", std)
     read_rec_hit = (read_rec_hit-mu)/std
     read_rec_hit = read_rec_hit[:args.num_send]
+    num_data_send = len(read_rec_hit)
     print(len(read_rec_hit))
     finish_time = time.time()-start_time
     print("Time reading data from local file and preprocessing (pkl->pandas) is ", finish_time)
 
     start_time = time.time()
-    compressed_data = read_rec_hit.to_json().encode('utf-8')
+    compressed_data = read_rec_hit.values.tobytes()
     finish_time = time.time()-start_time
     print("Time reading data from local file (pandas->bytes) is ", finish_time)
-    #num_run = 5
-    #time_average = 0
-    #for i in range(num_run):
-    #    time_average += run_facile(setup_server(args.IP), compressed_data, args.num_send)
-    #print(time_average/num_run)
+
     n_event = 16000
-    for i in 2**np.arange(15,25):
-       cpu_time, gpu_time = run_facile(setup_server(args.IP), compressed_data, args.num_send, i)
+    for i in 2**np.arange(8,30):
+       cpu_time, gpu_time = run_facile(setup_server(args.IP), compressed_data, num_data_send, i)
        print("CPU TIME :", cpu_time*(1e9)/len(read_rec_hit), "ns per hit")
        print("CPU TIME :", cpu_time*(1e3)*n_event/len(read_rec_hit), "ms per event") 
        print("GPU TIME :", gpu_time*(1e9)/len(read_rec_hit), "ns per hit")
-       print("GPU TIME :", gpu_time*(1e3)*n_event/len(read_rec_hit), "ms per event") 
-        
-#print(time_average/10)
-    #num_run = 1
-    #time_average = 0
-    #for i in range(num_run):
-    #    time_average += run_facile(setup_server(args.IP), compressed_data, args.num_send)
-    #print(time_average/num_run)
-
+       print("GPU TIME :", gpu_time*(1e3)*n_event/len(read_rec_hit), "ms per event")  
