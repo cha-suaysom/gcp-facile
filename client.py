@@ -87,9 +87,14 @@ if __name__ == '__main__':
     #for i in range(num_run):
     #    time_average += run_facile(setup_server(args.IP), compressed_data, args.num_send)
     #print(time_average/num_run)
-    for i in 2**np.arange(8,17):
+    n_event = 16000
+    for i in 2**np.arange(15,25):
        cpu_time, gpu_time = run_facile(setup_server(args.IP), compressed_data, args.num_send, i)
-       print(cpu_time,gpu_time)    
+       print("CPU TIME :", cpu_time*(1e9)/len(read_rec_hit), "ns per hit")
+       print("CPU TIME :", cpu_time*(1e3)*n_event/len(read_rec_hit), "ms per event") 
+       print("GPU TIME :", gpu_time*(1e9)/len(read_rec_hit), "ns per hit")
+       print("GPU TIME :", gpu_time*(1e3)*n_event/len(read_rec_hit), "ms per event") 
+        
 #print(time_average/10)
     #num_run = 1
     #time_average = 0
