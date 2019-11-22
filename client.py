@@ -31,7 +31,7 @@ def run_facile(channel, data_send, num_data_send, batch_size):
     #logging.info("Number tested is " + str(num_data_send))
     #logging.info("Submitting files and waiting")
     data_message = server_tools_pb2.DataMessage(
-        client_id=client_id, data=data_send, batch_size=batch_size)
+        client_id=client_id, data=data_send, batch_size=batch_size, num_data = num_data_send)
     response = stub.StartJobWait(data_message, 100, [])
 
     # Print output
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     print("Time reading data from local file and preprocessing (pkl->pandas) is ", finish_time)
 
     start_time = time.time()
-    compressed_data = read_rec_hit.to_json().encode('utf-8')
+    compressed_data = read_rec_hit.tobytes()
     finish_time = time.time()-start_time
     print("Time reading data from local file (pandas->bytes) is ", finish_time)
     #num_run = 5
@@ -87,9 +87,9 @@ if __name__ == '__main__':
     #for i in range(num_run):
     #    time_average += run_facile(setup_server(args.IP), compressed_data, args.num_send)
     #print(time_average/num_run)
-    for i in 2**np.arange(8,17):
+    for i in 2**np.arange(8,30):
        cpu_time, gpu_time = run_facile(setup_server(args.IP), compressed_data, args.num_send, i)
-       print(cpu_time,gpu_time)    
+       print("CPU TIME: ", cpu_time , "GPU TIME: ", gpu_time)    
 #print(time_average/10)
     #num_run = 1
     #time_average = 0
