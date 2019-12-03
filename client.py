@@ -53,8 +53,9 @@ def run_facile(host_IP):
     print("Fraction of time spent not predicting:",
           (1 - response.infer_time / whole_time) * 100, '%')
     #print(response.prediction)
-    #print(np.frombuffer(response.prediction[:10],dtype = np.float32))
-    print(response.prediction.decode('utf-8'))
+    prediction = np.frombuffer(response.prediction,dtype = np.float32)
+    print(prediction[:10])
+    #print(response.prediction.decode('utf-8'))
     #print(X[:10])
     channel.close()
 

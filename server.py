@@ -21,11 +21,12 @@ import grpc
 import time
 import numpy as np
 
-import model_class_tpu as mc_tpu
+#import model_class_tpu as mc_tpu
 import model_class as mc
 import server_tools_pb2
 import server_tools_pb2_grpc
 import pandas as pd
+import tensorflow as tf
 from keras.models import Model
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
@@ -56,14 +57,67 @@ class Model4ExpLLLow(mc.ClassModel):
         h = Dense(3, activation='relu')(norm)
         return Dense(1, activation='linear', name='output')(h)
 
-
+class ModelFacile(object):
+    def __call__(self, inputs):
+        net = tf.layers.dropout(inputs, rate = 0.001)
+        net = tf.layers.dense(net, 36, activation = 'relu')
+        norm = tf.layers.dropout(net, rate = 0.001)
+        net = tf.layers.dense(norm, 11, activation = 'relu')
+        norm = tf.layers.dropout(net, rate = 0.001)
+        net = tf.layers.dense(norm, 3, activation = 'relu')
+        return tf.layers.dense(net, 1, activation = 'linear', name='output')
+    
 def verify_request(request):
     logging.info("Client id is " + str(request.client_id))
     logging.info("Batch size is " + str(request.batch_size))
     return (request.client_id in max_client_ids) and request.batch_size > 0
 
+def model_fn(features, labels, mode, params):
+    model = ModelFacile()
+
+    if mode == tf.estimator.ModeKeys.PREDICT:
+        predicted_values = model(features)
+        predictions = {
+            'probabilities': predicted_values,
+        }
+        return tf.contrib.tpu.TPUEstimatorSpec(mode, predictions=predictions)
 
 class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
+    estimator = None
+    MODEL_DIR = 'gs://harrisgroup-ctpu/facile/model/'
+    DATA_DIR = 'gs://harrisgroup-ctpu/facile/data/'
+    TPU_NAME='uw-tpu'
+    ZONE_NAME='us-central1-b'
+    PROJECT_NAME = 'harrisgroup-223921'
+    NUM_ITERATIONS = 1000 # Number of iterations per TPU training loop
+    TRAIN_STEPS = 5000
+    NUM_SHARDS = 8 # Number of shards (TPU chips).
+    BATCH_SIZE = 32
+    def __init__(self):
+        print("Creating the estimator")
+        tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
+            self.TPU_NAME,
+            zone=self.ZONE_NAME,
+            project=self.PROJECT_NAME)
+
+        run_config = tf.contrib.tpu.RunConfig(
+            cluster=tpu_cluster_resolver,
+            model_dir=self.MODEL_DIR,
+            session_config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True),
+            tpu_config=tf.contrib.tpu.TPUConfig(self.NUM_ITERATIONS, self.NUM_SHARDS))
+    
+        self.estimator = tf.contrib.tpu.TPUEstimator(
+            model_fn=model_fn,
+            use_tpu=True,
+            train_batch_size=self.BATCH_SIZE,
+            eval_batch_size=self.BATCH_SIZE,
+            predict_batch_size=self.BATCH_SIZE,
+            params={"data_dir": self.DATA_DIR},
+            config=run_config,
+            warm_start_from = tf.compat.v1.estimator.WarmStartSettings(ckpt_to_initialize_from=
+                                                                   "gs://harrisgroup-ctpu/facile/model/",
+                                                                  vars_to_warm_start=".*"))
+    
     def StartJobWait(self, request, context):
         logging.info("StartJobWait begins")
         if not verify_request(request):
@@ -93,13 +147,32 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
 
         #sample.infer(model)
         #predictions, infer_time = model.predict(sample.X, 32)
-        prediction, infer_time = mc_tpu.predict(sample.X, 32)
+        start_time = time.time()
+        #preds = self.estimator.predict(sample.X, self.BATCH_SIZE)
+        #predicted_values = next(prediction)
+        #for pred_dict in prediction:
+        #    predicted_values.append(list(pred_dict.values())[0][0])  
+        def predict_input_fn(params):
+            batch_size = self.BATCH_SIZE
+            print("DATASET TYPE: ", type(sample.X.astype('float32').values))
+            print("DATASET: ", sample.X.astype('float32').values)
+            dataset_predict = tf.data.Dataset.from_tensor_slices(sample.X.astype('float32').values)
+            return dataset_predict.batch(batch_size)
+    
+        preds = self.estimator.predict(predict_input_fn)
+        predictionsarr = []
+        for prediction in preds:
+            pred = prediction['probabilities']
+            predictionsarr.append(pred)
+        predictions = np.asmatrix(predictionsarr)
+        infer_time = time.time() - start_time
 
         # Need this otherwise two workers will be conflicted
         K.clear_session()
         # print("------------PREDICTION-----------")
-        # print(predictions)
-        # print(type(predictions))
+        #print(preds)
+        #print(predictions)
+        #print(type(predictions))
         # print(predictions.tobytes())
         # print(predictions.shape)
         # print(predictions[:,0].shape)
@@ -108,11 +181,14 @@ class MnistServer(server_tools_pb2_grpc.MnistServerServicer):
         # print(predictions.dtype)
         #print(predictions.type)
         #print(list(predictions))
-        print("Type of prediction is ", type(prediction))
-        print("What can I call ", dir(prediction))
+        #print("Type of prediction is ", type(predictions))
+        #print("What can I call ", dir(predictions))
+        #print("Prediction shape ", predictions.shape())
+        #prediction = np.array(predictions.values())
+        #print(prediction)
         return server_tools_pb2.PredictionMessage(
             complete=True,
-            prediction=("lol".encode('utf-8')),
+            prediction=(predictions[:,0].tobytes()),
             error='',
             infer_time=infer_time)
 
